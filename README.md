@@ -1,6 +1,6 @@
 # vma_sample_sdl #
 
-SDL Port of the GPUOpen VMA Sample
+Unofficial SDL Port of the GPUOpen VMA Sample
 
 # OS Support
 * Windows
