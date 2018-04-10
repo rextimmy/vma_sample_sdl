@@ -98,14 +98,21 @@ static VkImage g_hTextureImage;
 static VmaAllocation g_hTextureImageAlloc;
 static VkImageView g_hTextureImageView;
 
-#if !defined(_WIN32) && !defined(__APPLE__)
+#if defined(__linux__)
 #include <malloc.h> // for aligned_alloc()
+
+#define _aligned_malloc(size, alignment)   (aligned_alloc((alignment), (size) ))
+
+void *_aligned_realloc(void* memblock,size_t size, size_t alignment)
+{
+	free(memblock);
+	return _aligned_malloc(size, alignment);
+}
 #endif
 
-#if defined(__APPLE__) || defined(__ANDROID__)
+#if defined(__APPLE__)
 #include <cstdlib>
-//avoid name conflict with vma but adding a A at the end
-void *aligned_allocA(size_t alignment, size_t size)
+void *_aligned_malloc(size_t size, size_t alignment)
 {
    // alignment must be >= sizeof(void*)
    if(alignment < sizeof(void*))
@@ -119,22 +126,17 @@ void *aligned_allocA(size_t alignment, size_t size)
    return nullptr;
 }
 
-void *aligned_realloc(void* memblock,size_t alignment, size_t size)
+void *_aligned_realloc(void* memblock,size_t size, size_t alignment)
 {
    free(memblock);
-   return aligned_allocA(alignment, size);
+   return _aligned_malloc(size, alignment);
 }
 #endif
 
-#if defined(_WIN32)
-#define ALIGNED_MALLOC(size, alignment)   (_aligned_malloc((size), (alignment)))
-#define ALIGNED_REALLOC(memblock, size, alignment) (_aligned_realloc((memblock), (size), (alignment)))
-#define ALIGNED_FREE(ptr) _aligned_free(ptr)
-#else
-#define ALIGNED_MALLOC(size, alignment)   (aligned_allocA((alignment), (size) ))
-#define ALIGNED_REALLOC(memblock, size, alignment) (aligned_realloc((memblock), (alignment), (size) ))
-#define ALIGNED_FREE(ptr)   free(ptr)
+#if !defined(_WIN32)
+#define _aligned_free(ptr)	free(ptr)
 #define ZeroMemory(p, sz) memset((p), 0, (sz))
+
 template < typename T, size_t N >
 size_t _countof( T ( & arr )[ N ] )
 {
@@ -147,7 +149,7 @@ static void* CustomCpuAllocation(
     VkSystemAllocationScope allocationScope)
 {
     assert(pUserData == CUSTOM_CPU_ALLOCATION_CALLBACK_USER_DATA);
-    return ALIGNED_MALLOC(size, alignment);
+    return _aligned_malloc(size, alignment);
 }
 
 static void* CustomCpuReallocation(
@@ -155,13 +157,13 @@ static void* CustomCpuReallocation(
     VkSystemAllocationScope allocationScope)
 {
     assert(pUserData == CUSTOM_CPU_ALLOCATION_CALLBACK_USER_DATA);
-    return ALIGNED_REALLOC(pOriginal, size, alignment);
+    return _aligned_realloc(pOriginal, size, alignment);
 }
 
 static void CustomCpuFree(void* pUserData, void* pMemory)
 {
     assert(pUserData == CUSTOM_CPU_ALLOCATION_CALLBACK_USER_DATA);
-    ALIGNED_FREE(pMemory);
+    _aligned_free(pMemory);
 }
 
 static void BeginSingleTimeCommands()

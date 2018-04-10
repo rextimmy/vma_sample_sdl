@@ -23,6 +23,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdarg>
+#include <climits>
+#include <cstring>
+#include <cfloat>
 #include <SDL.h>
 
 
