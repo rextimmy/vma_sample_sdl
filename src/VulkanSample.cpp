@@ -1736,8 +1736,8 @@ static void PollEvents()
 			break;
 		default:
 			break;
-	}
-}
+	    }
+    }
 }
 
 #ifdef _WIN32
